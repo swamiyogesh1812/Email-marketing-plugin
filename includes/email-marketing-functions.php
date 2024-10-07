@@ -51,7 +51,7 @@ function cf7_email_marketing_menu() {
 function cf7_display_email_marketing_data() {
     global $wpdb;
     $table_name = $wpdb->prefix . 'email_marketing';
-    $results = $wpdb->get_results("SELECT * FROM $table_name");
+    $results = $wpdb->get_results("SELECT * FROM $table_name ORDER BY id DESC");
     echo '<div class="wrap">';
     echo '<h1>Email Marketing Entries</h1>';
     echo '<table class="wp-list-table widefat fixed striped">';
