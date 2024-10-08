@@ -83,7 +83,41 @@ function cf7_display_email_marketing_data() {
     echo '</table>';
     echo '</div>';
 }
+//paid services form data save
 
+add_action('wp_loaded', 'cf7_global_form_submission');
+
+function cf7_global_form_submission() {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['marketing'])) {
+        $first_name = isset($_POST['fname']) ? sanitize_text_field($_POST['fname']) : '';
+        $last_name = isset($_POST['lname']) ? sanitize_text_field($_POST['lname']) : '';
+        $email = isset($_POST['email']) ? sanitize_email($_POST['email']) : '';
+
+        if (is_email($email)) {
+            cf7_save_marketing_data($first_name, $last_name, $email);
+        } else {
+            error_log('Invalid email address: ' . $email); 
+        }
+    }
+} 
+
+function cf7_save_marketing_data($first_name, $last_name, $email) {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'email_marketing';
+    $result = $wpdb->insert(
+        $table_name,
+        array(
+            'first_name' => $first_name,
+            'last_name'  => $last_name,
+            'email'      => $email,
+            'date'       => current_time('mysql')
+        ),
+        array('%s', '%s', '%s', '%s')
+    );
+    if ($result === false) {
+        error_log('Database insert failed: ' . $wpdb->last_error);
+    }
+}
 // Handle the export request via admin-post.php action
 add_action('admin_post_export_email_marketing', 'cf7_export_email_marketing_data');
 
