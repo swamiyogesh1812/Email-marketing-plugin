@@ -54,4 +54,4 @@ function cf7_create_email_marketing_table() {
     dbDelta($sql);
 }
 
-register_activation_hook(__FILE__, 'cf7_create_email_marketing_table');
+register_activation_hook(__FILE__, 'cf7_create_email_marketing_table'); 
