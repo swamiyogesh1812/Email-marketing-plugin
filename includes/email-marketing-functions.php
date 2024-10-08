@@ -127,13 +127,14 @@ function cf7_export_email_marketing_data() {
     $results = $wpdb->get_results("SELECT first_name, last_name, email FROM $table_name ORDER BY id DESC", ARRAY_A);
 
     if (!empty($results)) {
-        header('Content-Type: application/vnd.ms-excel');
-        header('Content-Disposition: attachment;filename="email_marketing_entries.xls"');
+        ob_clean();
+        header('Content-Type: text/csv');
+        header('Content-Disposition: attachment;filename="email_marketing_entries.csv"');
         header('Cache-Control: max-age=0');
         $output = fopen('php://output', 'w');
-        fputcsv($output, array('First Name', 'Last Name', 'Email'), "\t");
+        fputcsv($output, array('First Name', 'Last Name', 'Email'));
         foreach ($results as $row) {
-            fputcsv($output, $row, "\t");
+            fputcsv($output, $row);
         }
         fclose($output);
         exit;
@@ -141,4 +142,6 @@ function cf7_export_email_marketing_data() {
         wp_die('No data available to export.');
     }
 }
+
+
 ?>
