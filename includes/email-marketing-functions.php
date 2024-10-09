@@ -48,28 +48,22 @@ function cf7_email_marketing_menu() {
     );
 }
 
-// Register AJAX actions for logged-in and logged-out users
-add_action('wp_ajax_delete_email_marketing_entries', 'delete_email_marketing_entries');
 
-function delete_email_marketing_entries() {
-    global $wpdb;
-    $table_name = $wpdb->prefix . 'email_marketing';
-
-    // Check if entry IDs are set
-    if (isset($_POST['entry_ids']) && !empty($_POST['entry_ids'])) {
-        $ids_to_delete = implode(',', array_map('intval', $_POST['entry_ids']));
-        $wpdb->query("DELETE FROM $table_name WHERE id IN ($ids_to_delete)");
-
-        // Send a JSON response back to the client
-        wp_send_json_success('Selected entries have been deleted.');
-    } else {
-        wp_send_json_error('No entries selected for deletion.');
-    }
-}
 function cf7_display_email_marketing_data() {
     global $wpdb;
     $table_name = $wpdb->prefix . 'email_marketing';
     $results = $wpdb->get_results("SELECT * FROM $table_name ORDER BY id DESC");
+
+    if (isset($_POST['bulk_action']) && $_POST['bulk_action'] == 'move_to_trash') {
+        if (isset($_POST['entry_ids']) && !empty($_POST['entry_ids'])) {
+            $ids_to_delete = implode(',', array_map('intval', $_POST['entry_ids']));
+            $wpdb->query("DELETE FROM $table_name WHERE id IN ($ids_to_delete)");
+            wp_redirect($_SERVER['REQUEST_URI']);
+            exit; 
+        } else {
+            echo '<div class="error notice is-dismissible"><p>No entries selected for deletion.</p></div>';
+        }
+    }
 
     echo '<div class="wrap">';
     echo '<div style="display: flex; align-items: center;">';
@@ -80,17 +74,17 @@ function cf7_display_email_marketing_data() {
     echo '<input type="hidden" name="action" value="export_email_marketing">';
     echo '<input type="submit" name="export_email_marketing" class="button button-primary" value="Export to Excel" style="margin-left: 15px;">';
     echo '</form>';
-    echo '</div>';
+    echo '</div>'; 
 
     // Bulk action dropdown and apply button
-    echo '<form id="email-marketing-form" method="post">';
+    echo '<form method="post">';
     echo '<div class="tablenav top">';
     echo '<div class="alignleft actions">';
     echo '<select name="bulk_action">';
     echo '<option value="">Bulk actions</option>';
     echo '<option value="move_to_trash">Move to Trash</option>';
     echo '</select>';
-    echo '<input type="button" id="apply-bulk-action" class="button action" value="Apply">';
+    echo '<input type="submit" name="apply_bulk_action" class="button action" value="Apply">';
     echo '</div>';
     echo '</div>';
 
@@ -98,18 +92,18 @@ function cf7_display_email_marketing_data() {
     echo '<table class="wp-list-table widefat fixed striped">';
     echo '<thead>';
     echo '<tr>';
-    echo '<th style="width: 50px;"><input type="checkbox" id="select-all" style=" margin: 0;"></th>'; 
+    echo '<th style="width: 50px;"><input type="checkbox" id="select-all" style="margin: 0;"></th>'; // Checkbox for select all
     echo '<th>First Name</th>';
     echo '<th>Last Name</th>';
     echo '<th>Email</th>';
     echo '</tr>';
     echo '</thead>';
-    echo '<tbody id="email-marketing-entries">';
+    echo '<tbody>';
 
     if (!empty($results)) {
         foreach ($results as $row) {
-            echo '<tr id="entry-' . esc_attr($row->id) . '">';
-            echo '<td><input type="checkbox" name="entry_ids[]" value="' . esc_attr($row->id) . '"></td>'; 
+            echo '<tr>';
+            echo '<td><input type="checkbox" name="entry_ids[]" value="' . esc_attr($row->id) . '"></td>'; // Checkbox for each row
             echo '<td>' . esc_html($row->first_name) . '</td>';
             echo '<td>' . esc_html($row->last_name) . '</td>';
             echo '<td>' . esc_html($row->email) . '</td>';
@@ -120,9 +114,7 @@ function cf7_display_email_marketing_data() {
     }
     echo '</tbody>';
     echo '</table>';
-    echo '</form>';
-
-    // JavaScript for handling AJAX requests
+    echo '</form>'; 
     echo '<script>
     document.getElementById("select-all").addEventListener("click", function(event) {
         var checkboxes = document.querySelectorAll(\'input[name="entry_ids[]"]\');
@@ -130,47 +122,11 @@ function cf7_display_email_marketing_data() {
             checkboxes[i].checked = event.target.checked;
         }
     });
-
-    document.getElementById("apply-bulk-action").addEventListener("click", function() {
-        var bulkAction = document.querySelector(\'select[name="bulk_action"]\').value;
-        var selectedEntries = document.querySelectorAll(\'input[name="entry_ids[]"]:checked\');
-        var entryIds = [];
-
-        selectedEntries.forEach(function(entry) {
-            entryIds.push(entry.value);
-        });
-
-        if (bulkAction === "move_to_trash" && entryIds.length > 0) {
-            var formData = new FormData();
-            formData.append("action", "delete_email_marketing_entries");
-            formData.append("entry_ids", entryIds);
-
-            fetch(ajaxurl, {
-                method: "POST",
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    entryIds.forEach(function(id) {
-                        var row = document.getElementById("entry-" + id);
-                        if (row) {
-                            row.remove(); // Remove the row from the table
-                        }
-                    });
-                    alert(data.data);
-                } else {
-                    alert(data.data);
-                }
-            });
-        } else {
-            alert("No entries selected or invalid action.");
-        }
-    });
     </script>';
-
+    
     echo '</div>';
 }
+
 
 //paid services form data save
 
