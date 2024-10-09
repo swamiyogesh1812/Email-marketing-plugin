@@ -12,22 +12,27 @@ function cf7_save_email_marketing_data($contact_form) {
             $first_name = sanitize_text_field($data['Firstname']); 
             $last_name = sanitize_text_field($data['Lastname']);  
             $email = sanitize_email($data['email-0']);             
-
-            // Insert data into the custom table
-            $table_name = $wpdb->prefix . 'email_marketing'; 
-            $wpdb->insert(
-                $table_name,
-                array(
-                    'first_name' => $first_name,
-                    'last_name'  => $last_name,
-                    'email'      => $email,
-                    'date'       => current_time('mysql')
-                ),
-                array('%s', '%s', '%s', '%s')
-            );
+            $table_name = $wpdb->prefix . 'email_marketing';
+            $email_exists = $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM $table_name WHERE email = %s",
+                $email
+            ));
+            if ($email_exists == 0) {
+                $wpdb->insert(
+                    $table_name,
+                    array(
+                        'first_name' => $first_name,
+                        'last_name'  => $last_name,
+                        'email'      => $email,
+                        'date'       => current_time('mysql')
+                    ),
+                    array('%s', '%s', '%s', '%s')
+                );
+            }
         }
     }
 }
+
 
 // Add a menu item to display the email marketing entries
 add_action('admin_menu', 'cf7_email_marketing_menu');
@@ -78,7 +83,6 @@ function cf7_display_email_marketing_data() {
     } else {
         echo '<tr><td colspan="3">No entries found.</td></tr>';
     }
-
     echo '</tbody>';
     echo '</table>';
     echo '</div>';
@@ -104,6 +108,15 @@ function cf7_global_form_submission() {
 function cf7_save_marketing_data($first_name, $last_name, $email) {
     global $wpdb;
     $table_name = $wpdb->prefix . 'email_marketing';
+    $email_exists = $wpdb->get_var( $wpdb->prepare(
+        "SELECT COUNT(*) FROM $table_name WHERE email = %s",
+        $email
+    ));
+
+    if ($email_exists > 0) {
+        error_log('Email already exists: ' . $email);
+        return;
+    }
     $result = $wpdb->insert(
         $table_name,
         array(
@@ -114,10 +127,12 @@ function cf7_save_marketing_data($first_name, $last_name, $email) {
         ),
         array('%s', '%s', '%s', '%s')
     );
+
     if ($result === false) {
         error_log('Database insert failed: ' . $wpdb->last_error);
     }
 }
+
 // Handle the export request via admin-post.php action
 add_action('admin_post_export_email_marketing', 'cf7_export_email_marketing_data');
 
